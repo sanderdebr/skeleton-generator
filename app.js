@@ -1,27 +1,58 @@
 import { settings } from "./settings.js";
-import Grid from "./Grid.js";
-import Rectangle from "./Rectangle.js";
-import Line from "./Line.js";
+import Grid from "./shapes/Grid.js";
+import Rectangle from "./shapes/Rectangle.js";
+import Circle from "./shapes/Circle.js";
 
 class App {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = this.canvas.getContext("2d");
     this.grid = new Grid(this.ctx, this.canvas);
-    this.drag = { tl: false, tr: false, bl: false, br: false };
-    this.rectangles = [];
+    this.objects = [];
     this.init();
   }
 
-  createRectangle(coords) {
+  createObject(coords) {
     const rect = new Rectangle(
       this.ctx,
       coords.x,
       coords.y,
       settings.rectWidth,
-      settings.rectHeight
+      settings.rectHeight,
+      settings.rectColor
     );
-    this.rectangles.push({ obj: rect, drag: this.drag });
+    // Add handlers
+    const topLeft = new Circle(
+      this.ctx,
+      coords.x,
+      coords.y,
+      settings.closeEnough,
+      settings.circleColor
+    );
+    const topRight = new Circle(
+      this.ctx,
+      coords.x + settings.rectWidth,
+      coords.y,
+      settings.closeEnough
+    );
+    const bottomLeft = new Circle(
+      this.ctx,
+      coords.x,
+      coords.y + settings.rectHeight,
+      settings.closeEnough
+    );
+    const bottomRight = new Circle(
+      this.ctx,
+      coords.x + settings.rectWidth,
+      coords.y + settings.rectHeight,
+      settings.closeEnough
+    );
+    this.objects.push({
+      obj: rect,
+      hovered: false,
+      drag: { tl: false, tr: false, bl: false, br: false },
+      circles: [topLeft, topRight, bottomLeft, bottomRight],
+    });
   }
 
   getCoords({ clientX, clientY }) {
@@ -31,61 +62,121 @@ class App {
     return { x, y };
   }
 
-  draw() {
-    this.rectangles.forEach((rectangle) => rectangle.obj.draw());
-  }
-
   mouseDown(e) {
     const coords = this.getCoords(e);
 
+    this.activeObject() === undefined && this.createObject(coords);
     // Check if the mouse is interacting with any of the current rectangles corners
-    const result = this.rectangles.forEach((rectangle, i) => {
+
+    this.objects.forEach((object, i) => {
+      // Left top
       if (
-        this.checkCloseEnough(coords.x, rectangle.obj.left) &&
-        this.checkCloseEnough(coords.y, rectangle.obj.top)
+        this.isHoveringHandle(coords.x, object.obj.left) &&
+        this.isHoveringHandle(coords.y, object.obj.top)
       ) {
-        this.rectangles[i].drag.tl = true;
+        this.objects[i].drag.tl = true;
+        // Right top
+      } else if (
+        this.isHoveringHandle(coords.x, object.obj.left + object.obj.width) &&
+        this.isHoveringHandle(coords.y, object.obj.top)
+      ) {
+        this.objects[i].drag.tr = true;
+        // Left bottom
+      } else if (
+        this.isHoveringHandle(coords.x, object.obj.left) &&
+        this.isHoveringHandle(coords.y, object.obj.top + object.obj.height)
+      ) {
+        this.objects[i].drag.bl = true;
+        // Right bottom
+      } else if (
+        this.isHoveringHandle(coords.x, object.obj.left + object.obj.width) &&
+        this.isHoveringHandle(coords.y, object.obj.top + object.obj.height)
+      ) {
+        this.objects[i].drag.br = true;
       }
     });
+  }
 
-    // If not interacting when any rectangles, create one
-    // result.length === 0 && this.createRectangle(coords);
+  activeObject() {
+    return this.objects.filter((object) => object.hovered === true)[0];
   }
 
   mouseMove(e) {
     const coords = this.getCoords(e);
-    console.log("berend", this.rectangles[0].drag.tl);
 
-    // if (this.drag.tl) {
-    //   rect.w += rect.startX - coords[0];
-    //   rect.h += rect.startY - coords[1];
-    //   rect.startX = coords[0];
-    //   rect.startY = coords[1];
-    // } else if (this.drag.tr) {
-    //   rect.w = Math.abs(rect.startX - coords[0]);
-    //   rect.h += rect.startY - coords[1];
-    //   rect.startY = coords[1];
-    // } else if (this.drag.bl) {
-    //   rect.w += rect.startX - coords[0];
-    //   rect.h = Math.abs(rect.startY - coords[1]);
-    //   rect.startX = coords[0];
-    // } else if (this.drag.br) {
-    //   rect.w = Math.abs(rect.startX - coords[0]);
-    //   rect.h = Math.abs(rect.startY - coords[1]);
-    // }
+    // Set hover state if any object is hovered
+    this.objects.forEach((object, i) => {
+      if (this.isHoveringObject(coords, object.obj)) {
+        object.hovered = true;
+      } else {
+        object.hovered = false;
+      }
+    });
+
+    // Select active object, if any
+    if (this.activeObject()) {
+      const coords = this.getCoords(e);
+
+      const { all, tl, tr, bl, br } = this.activeObject().drag;
+      const { obj, circles, hovered } = this.activeObject();
+
+      // Check which side is dragged, update items accordingly
+      if (tl) {
+        obj.width += obj.left - coords.x;
+        obj.height += obj.top - coords.y;
+        obj.x = coords.x;
+        obj.y = coords.y;
+        circles[0].x = coords.x;
+        circles[0].y = coords.y;
+        circles[1].y = coords.y;
+        circles[2].x = coords.x;
+      } else if (tr) {
+        obj.width = Math.abs(obj.left - coords.x);
+        obj.height += obj.top - coords.y;
+        obj.y = coords.y;
+        circles[0].y = coords.y;
+        circles[1].x = coords.x;
+        circles[1].y = coords.y;
+        circles[3].x = coords.x;
+      } else if (bl) {
+        obj.width += obj.left - coords.x;
+        obj.height = Math.abs(obj.top - coords.y);
+        obj.x = coords.x;
+        circles[0].x = coords.x;
+        circles[2].x = coords.x;
+        circles[2].y = coords.y;
+        circles[3].y = coords.y;
+      } else if (br) {
+        obj.width = Math.abs(obj.left - coords.x);
+        obj.height = Math.abs(obj.top - coords.y);
+        circles[1].x = coords.x;
+        circles[2].y = coords.y;
+        circles[3].x = coords.x;
+      }
+    }
 
     this.clear();
-    this.draw();
   }
 
   // Turn off drag
   mouseUp() {
-    Object.keys(this.drag).forEach((e) => (this.drag[e] = false));
+    this.objects.forEach((object) =>
+      Object.keys(object.drag).forEach((e) => (object.drag[e] = false))
+    );
   }
 
   // Check if drag handle is being clicked
-  checkCloseEnough(p1, p2) {
+  isHoveringHandle(p1, p2) {
     return Math.abs(p1 - p2) < settings.closeEnough;
+  }
+
+  isHoveringObject(coords, obj) {
+    return (
+      coords.x >= obj.left - settings.closeEnough &&
+      coords.x <= obj.right + settings.closeEnough &&
+      coords.y >= obj.top - settings.closeEnough &&
+      coords.y <= obj.bottom + settings.closeEnough
+    );
   }
 
   clear() {
@@ -93,20 +184,35 @@ class App {
     this.grid.draw();
   }
 
+  draw() {
+    if (this.objects.length) {
+      this.objects.forEach((object) => {
+        object.obj.draw();
+        if (object.hovered) {
+          object.circles.forEach((circle) => {
+            circle.draw();
+          });
+        }
+      });
+    }
+    window.requestAnimationFrame(() => this.draw());
+  }
+
   addEventListeners() {
     this.canvas.addEventListener("mousedown", this.mouseDown.bind(this));
     this.canvas.addEventListener("mouseup", this.mouseUp.bind(this));
     this.canvas.addEventListener("mousemove", this.mouseMove.bind(this));
 
-    document
-      .getElementById("clear")
-      .addEventListener("click", () => (this.rectangles = []));
+    document.getElementById("clear").addEventListener("click", () => {
+      this.clear();
+      this.objects = [];
+    });
   }
 
   init() {
     this.addEventListeners();
+    window.requestAnimationFrame(() => this.draw());
     this.grid.draw();
-    this.createRectangle({ x: 10, y: 10 });
   }
 }
 
