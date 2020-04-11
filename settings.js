@@ -1,5 +1,5 @@
 export const settings = {
-  closeEnough: 10,
+  closeEnough: 25,
   rectWidth: 100,
   rectHeight: 100,
 };

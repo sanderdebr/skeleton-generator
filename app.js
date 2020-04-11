@@ -37,47 +37,42 @@ class App {
 
   mouseDown(e) {
     const coords = this.getCoords(e);
-    this.createRectangle(coords);
-  }
 
-  mouseDown(e) {
-    const coords = this.getCoords(e);
-
-    this.rectangles.forEach((rectangle) => {
+    // Check if the mouse is interacting with any of the current rectangles corners
+    const result = this.rectangles.forEach((rectangle, i) => {
       if (
-        // Top left
-        this.checkCloseEnough(coords.x, rectangle.obj.x) &&
-        this.checkCloseEnough(coords.y, rectangle.obj.y)
+        this.checkCloseEnough(coords.x, rectangle.obj.left) &&
+        this.checkCloseEnough(coords.y, rectangle.obj.top)
       ) {
-        rectangle.obj.fillColor = "red";
-      } else {
-        this.createRectangle(coords);
+        this.rectangles[i].drag.tl = true;
       }
     });
 
-    // Check of mouseX in de buurt komt van een van de rectangles startX
+    // If not interacting when any rectangles, create one
+    // result.length === 0 && this.createRectangle(coords);
   }
 
   mouseMove(e) {
     const coords = this.getCoords(e);
+    console.log("berend", this.rectangles[0].drag.tl);
 
-    if (this.drag.tl) {
-      rect.w += rect.startX - coords[0];
-      rect.h += rect.startY - coords[1];
-      rect.startX = coords[0];
-      rect.startY = coords[1];
-    } else if (this.drag.tr) {
-      rect.w = Math.abs(rect.startX - coords[0]);
-      rect.h += rect.startY - coords[1];
-      rect.startY = coords[1];
-    } else if (this.drag.bl) {
-      rect.w += rect.startX - coords[0];
-      rect.h = Math.abs(rect.startY - coords[1]);
-      rect.startX = coords[0];
-    } else if (this.drag.br) {
-      rect.w = Math.abs(rect.startX - coords[0]);
-      rect.h = Math.abs(rect.startY - coords[1]);
-    }
+    // if (this.drag.tl) {
+    //   rect.w += rect.startX - coords[0];
+    //   rect.h += rect.startY - coords[1];
+    //   rect.startX = coords[0];
+    //   rect.startY = coords[1];
+    // } else if (this.drag.tr) {
+    //   rect.w = Math.abs(rect.startX - coords[0]);
+    //   rect.h += rect.startY - coords[1];
+    //   rect.startY = coords[1];
+    // } else if (this.drag.bl) {
+    //   rect.w += rect.startX - coords[0];
+    //   rect.h = Math.abs(rect.startY - coords[1]);
+    //   rect.startX = coords[0];
+    // } else if (this.drag.br) {
+    //   rect.w = Math.abs(rect.startX - coords[0]);
+    //   rect.h = Math.abs(rect.startY - coords[1]);
+    // }
 
     this.clear();
     this.draw();
