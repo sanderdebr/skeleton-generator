@@ -16,18 +16,20 @@
       <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
         <p class="text-3xl mb-1">UX Skeleton Screen Generator</p>
         <p class="mt-2 mb-1">
-          Draw your website skeleton below and this site will generate a
-          skeleton image for you!
+          Draw your website skeleton outline below and this site will the CSS
+          and HTML skeleton for you!
         </p>
         <p class="mb-3">Left click to add an element, right to delete one.</p>
         <div class="flex justify-between mb-2">
           <div class="flex items-center">
-            <p class="pr-1">Choose element:</p>
+            <p class="pr-1">Shapes:</p>
             <div id="box" class="tool active bg-gray-500 p-3 m-2"></div>
             <div
               id="circle"
               class="tool bg-gray-200 p-3 m-2 rounded-full"
             ></div>
+            <p class="px-5">Color:</p>
+            <input id="color" type="color" value="#ededed" />
           </div>
           <div class="flex items-center">
             <button
