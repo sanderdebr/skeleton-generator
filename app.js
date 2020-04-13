@@ -4,21 +4,41 @@ import Config from "./config.js";
 class App {
   constructor() {
     this.tool = "box";
-    this.color = Config.defaultColor;
     this.objects = [];
+    this.drag = false;
+    this.coords = { x: 0, y: 0 };
     this.grid = { x: [], y: [] };
   }
 
   // Adds element to the scene
   addElement(e) {
-    const element = document.createElement("div");
-    if (this.tool === "circle") element.style.borderRadius = "50%";
-    element.classList.add("element");
-    element.style.left = this.snapToGrid(e).left;
-    element.style.top = this.snapToGrid(e).top;
-    element.style.backgroundColor = this.color;
-    this.objects.push(element);
-    elements.scene.appendChild(element);
+    // First check if current element is being clicked
+    const { target } = e;
+    if (target.id !== "scene") {
+      this.drag = true;
+      return;
+    } else {
+      const element = document.createElement("div");
+      if (this.tool === "circle") element.style.borderRadius = "50%";
+      element.classList.add("element");
+      element.id = this.objects.length;
+      element.style.left = this.snapToGrid(e).left;
+      element.style.top = this.snapToGrid(e).top;
+
+      // Fit size based on grid spacing
+      element.style.width =
+        this.tool === "circle"
+          ? Config.gridSpacing * 2
+          : (elements.scene.offsetWidth / Config.gridSpacing) * 2;
+      element.style.height =
+        this.tool === "circle"
+          ? Config.gridSpacing * 2
+          : (elements.scene.offsetHeight / Config.gridSpacing) * 3;
+
+      element.style.backgroundColor = this.getColor();
+      this.objects.push(element);
+      elements.scene.appendChild(element);
+    }
   }
 
   // Sets active class to clicked tool, if it was not active yet
@@ -37,30 +57,29 @@ class App {
 
   // Generates a grid on the scene
   addGrid({ offsetWidth: width, offsetHeight: height }) {
-    console.log(width, height);
     for (let i = 1; i < Config.gridSpacing; i++) {
-      // Horizontal lines
-      const xLine = document.createElement("div");
-      xLine.classList.add("xLine");
-      const xValue = (i * width) / Config.gridSpacing;
-      xLine.style.left = xValue;
-      elements.scene.appendChild(xLine);
-      this.grid.x.push(xValue);
-
       // Vertical lines
       const yLine = document.createElement("div");
       yLine.classList.add("yLine");
-      const yValue = (i * height) / Config.gridSpacing;
-      yLine.style.top = yValue;
-      this.grid.y.push(yValue);
+      const yValue = (i * width) / Config.gridSpacing;
+      yLine.style.left = yValue;
       elements.scene.appendChild(yLine);
+      this.grid.x.push(yValue);
+
+      // Horizontal lines
+      const xLine = document.createElement("div");
+      xLine.classList.add("xLine");
+      const xValue = (i * height) / Config.gridSpacing;
+      xLine.style.top = xValue;
+      this.grid.y.push(xValue);
+      elements.scene.appendChild(xLine);
     }
   }
 
   // Check closest intersection
   snapToGrid({ clientX, clientY }) {
-    const x = clientX - elements.scene.offsetLeft;
-    const y = clientY - elements.scene.offsetTop;
+    const x = clientX - Config.gridSpacing - elements.scene.offsetLeft;
+    const y = clientY - Config.gridSpacing - elements.scene.offsetTop;
     const left = this.grid.x.reduce((prev, curr) =>
       Math.abs(curr - x) < Math.abs(prev - x) ? curr : prev
     );
@@ -71,8 +90,16 @@ class App {
   }
 
   // Gets color
-  getColor({ target: value }) {
-    return value;
+  getColor() {
+    return elements.color.value || Config.defaultColor;
+  }
+  // Updates current mouse position
+  updateMouse({ clientX, clientY }) {
+    this.coords = {
+      x: clientX - elements.scene.offsetLeft,
+      y: clientY - elements.scene.offsetTop,
+    };
+    return null;
   }
 
   // Clear scene
@@ -92,8 +119,9 @@ class App {
 
   // Add eventlisteners
   attachListeners() {
-    elements.scene.addEventListener("click", this.addElement.bind(this));
-    elements.color.addEventListener("change", this.getColor);
+    elements.scene.addEventListener("mousemove", this.updateMouse.bind(this));
+    elements.scene.addEventListener("mousedown", this.addElement.bind(this));
+    elements.scene.addEventListener("mouseup", this.dragElement.bind(this));
     elements.clear.addEventListener("click", this.clear.bind(this));
     window.addEventListener("resize", () => {
       this.clearGrid();
