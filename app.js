@@ -1,224 +1,276 @@
-import { settings } from "./settings.js";
+import Config from "./config.js";
 import Grid from "./shapes/Grid.js";
-import Rectangle from "./shapes/Rectangle.js";
 import Circle from "./shapes/Circle.js";
 
 class App {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.ctx = this.canvas.getContext("2d");
-    this.grid = new Grid(this.ctx, this.canvas);
-    this.objects = [];
-    this.init();
+  constructor() {
+    this.canvas = document.querySelector("canvas"); // Our canvas
+    this.canvas.id = "CANVAS";
+
+    this.info = {
+      // Canvas information
+      WIDTH: this.canvas.width,
+      HEIGHT: this.canvas.height,
+      isDrag: false,
+      isResizeDrag: false,
+      expectResize: -1, // Saves the number of the selection handle if mouse is over one
+      canvasValid: false, // When set to true, will redraw everything
+    };
+
+    this.mySel = null; // Selected node, if any
+    this.coords = { x: 0, y: 0 }; // Mouse coordinates
+    this.offset = { x: 0, y: 0 }; // / Save offset of mouse when starting to drag
+    this.boxes = []; // Holds all the boxes
+    this.selectionHandles = []; // Holds the selection handles
+    this.ctx = this.canvas.getContext("2d"); // Canvas context
+    this.offsetX = 0;
+    this.offsetY = 0;
+
+    this.ghostcanvas = document.createElement("canvas"); // Ghost canvas
+    this.ghostcanvas.id = "GHOSTCANVAS";
+    this.ghostcanvas.height = this.info.HEIGHT;
+    this.ghostcanvas.width = this.info.WIDTH;
+    this.gctx = this.ghostcanvas.getContext("2d");
   }
 
-  createObject(coords) {
-    const rect = new Rectangle(
-      this.ctx,
-      coords.x,
-      coords.y,
-      settings.rectWidth,
-      settings.rectHeight,
-      settings.rectColor
-    );
-    // Add handlers
-    const topLeft = new Circle(
-      this.ctx,
-      coords.x,
-      coords.y,
-      settings.closeEnough,
-      settings.circleColor
-    );
-    const topRight = new Circle(
-      this.ctx,
-      coords.x + settings.rectWidth,
-      coords.y,
-      settings.closeEnough
-    );
-    const bottomLeft = new Circle(
-      this.ctx,
-      coords.x,
-      coords.y + settings.rectHeight,
-      settings.closeEnough
-    );
-    const bottomRight = new Circle(
-      this.ctx,
-      coords.x + settings.rectWidth,
-      coords.y + settings.rectHeight,
-      settings.closeEnough
-    );
-    this.objects.push({
-      obj: rect,
-      hovered: false,
-      drag: { tl: false, tr: false, bl: false, br: false },
-      circles: [topLeft, topRight, bottomLeft, bottomRight],
-    });
+  myMove(e) {
+    this.getMouse(e);
   }
 
-  getCoords({ clientX, clientY }) {
-    const c = this.canvas.getBoundingClientRect();
-    const x = clientX - c.left;
-    const y = clientY - c.top;
-    return { x, y };
-  }
+  // Happens when the mouse is clicked in the canvas
+  myDown(e) {
+    this.getMouse(e);
 
-  mouseDown(e) {
-    const coords = this.getCoords(e);
-
-    this.activeObject() === undefined && this.createObject(coords);
-    // Check if the mouse is interacting with any of the current rectangles corners
-
-    this.objects.forEach((object, i) => {
-      // Left top
-      if (
-        this.isHoveringHandle(coords.x, object.obj.left) &&
-        this.isHoveringHandle(coords.y, object.obj.top)
-      ) {
-        this.objects[i].drag.tl = true;
-        // Right top
-      } else if (
-        this.isHoveringHandle(coords.x, object.obj.left + object.obj.width) &&
-        this.isHoveringHandle(coords.y, object.obj.top)
-      ) {
-        this.objects[i].drag.tr = true;
-        // Left bottom
-      } else if (
-        this.isHoveringHandle(coords.x, object.obj.left) &&
-        this.isHoveringHandle(coords.y, object.obj.top + object.obj.height)
-      ) {
-        this.objects[i].drag.bl = true;
-        // Right bottom
-      } else if (
-        this.isHoveringHandle(coords.x, object.obj.left + object.obj.width) &&
-        this.isHoveringHandle(coords.y, object.obj.top + object.obj.height)
-      ) {
-        this.objects[i].drag.br = true;
-      }
-    });
-  }
-
-  activeObject() {
-    return this.objects.filter((object) => object.hovered === true)[0];
-  }
-
-  mouseMove(e) {
-    const coords = this.getCoords(e);
-
-    // Set hover state if any object is hovered
-    this.objects.forEach((object, i) => {
-      if (this.isHoveringObject(coords, object.obj)) {
-        object.hovered = true;
-      } else {
-        object.hovered = false;
-      }
-    });
-
-    // Select active object, if any
-    if (this.activeObject()) {
-      const coords = this.getCoords(e);
-
-      const { all, tl, tr, bl, br } = this.activeObject().drag;
-      const { obj, circles, hovered } = this.activeObject();
-
-      // Check which side is dragged, update items accordingly
-      if (tl) {
-        obj.width += obj.left - coords.x;
-        obj.height += obj.top - coords.y;
-        obj.x = coords.x;
-        obj.y = coords.y;
-        circles[0].x = coords.x;
-        circles[0].y = coords.y;
-        circles[1].y = coords.y;
-        circles[2].x = coords.x;
-      } else if (tr) {
-        obj.width = Math.abs(obj.left - coords.x);
-        obj.height += obj.top - coords.y;
-        obj.y = coords.y;
-        circles[0].y = coords.y;
-        circles[1].x = coords.x;
-        circles[1].y = coords.y;
-        circles[3].x = coords.x;
-      } else if (bl) {
-        obj.width += obj.left - coords.x;
-        obj.height = Math.abs(obj.top - coords.y);
-        obj.x = coords.x;
-        circles[0].x = coords.x;
-        circles[2].x = coords.x;
-        circles[2].y = coords.y;
-        circles[3].y = coords.y;
-      } else if (br) {
-        obj.width = Math.abs(obj.left - coords.x);
-        obj.height = Math.abs(obj.top - coords.y);
-        circles[1].x = coords.x;
-        circles[2].y = coords.y;
-        circles[3].x = coords.x;
-      }
+    //we are over a selection box
+    if (this.info.expectResize !== -1) {
+      this.info.isResizeDrag = true;
+      return;
     }
 
-    this.clear();
-  }
+    this.clear(this.gctx);
 
-  // Turn off drag
-  mouseUp() {
-    this.objects.forEach((object) =>
-      Object.keys(object.drag).forEach((e) => (object.drag[e] = false))
-    );
-  }
+    const l = this.boxes.length;
 
-  // Check if drag handle is being clicked
-  isHoveringHandle(p1, p2) {
-    return Math.abs(p1 - p2) < settings.closeEnough;
-  }
+    for (let i = l - 1; i >= 0; i--) {
+      // draw shape onto ghost context
+      this.boxes[i].draw("ghost", "black");
 
-  isHoveringObject(coords, obj) {
-    return (
-      coords.x >= obj.left - settings.closeEnough &&
-      coords.x <= obj.right + settings.closeEnough &&
-      coords.y >= obj.top - settings.closeEnough &&
-      coords.y <= obj.bottom + settings.closeEnough
-    );
-  }
+      // get image data at the mouse x,y pixel
+      const imageData = this.gctx.getImageData(
+        this.coords.x,
+        this.coords.y,
+        1,
+        1
+      );
+      const index = (this.coords.x + this.coords.y * imageData.width) * 4;
 
-  clear() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.grid.draw();
-  }
+      console.log(imageData.data);
 
-  draw() {
-    if (this.objects.length) {
-      this.objects.forEach((object) => {
-        object.obj.draw();
-        if (object.hovered) {
-          object.circles.forEach((circle) => {
-            circle.draw();
-          });
-        }
-      });
+      // if the mouse pixel exists, select and break
+      if (imageData.data[3] > 0) {
+        alert();
+
+        this.mySel = this.boxes[i];
+        offsetx = this.coords.x - this.mySel.x;
+        offsety = this.coords.y - this.mySel.y;
+        this.mySel.x = this.coords.x - offsetx;
+        this.mySel.y = this.coords.y - offsety;
+        this.info.isDrag = true;
+
+        this.invalidate();
+        this.clear(this.gctx);
+        return;
+      }
     }
-    window.requestAnimationFrame(() => this.draw());
+    // havent returned means we have selected nothing
+    this.mySel = null;
+    // clear the ghost canvas for next time
+    this.clear(this.gctx);
+    // invalidate because we might need the selection border to disappear
+    this.invalidate();
   }
 
-  addEventListeners() {
-    this.canvas.addEventListener("mousedown", this.mouseDown.bind(this));
-    this.canvas.addEventListener("mouseup", this.mouseUp.bind(this));
-    this.canvas.addEventListener("mousemove", this.mouseMove.bind(this));
+  myUp() {
+    isDrag = false;
+    isResizeDrag = false;
+    expectResize = -1;
+  }
 
-    document.getElementById("clear").addEventListener("click", () => {
-      this.clear();
-      this.objects = [];
-    });
+  // Sets mx,my to the mouse position relative to the canvas
+  // unfortunately this can be tricky, we have to worry about padding and borders
+  getMouse(e) {
+    let element = this.canvas;
+
+    if (element.offsetParent) {
+      do {
+        this.offsetX += element.offsetLeft;
+        this.offsetY += element.offsetTop;
+      } while ((element = element.offsetParent));
+    }
+
+    // Add padding and border style widths to offset
+    // offsetX += stylePaddingLeft;
+    // offsetY += stylePaddingTop;
+
+    // offsetX += styleBorderLeft;
+    // offsetY += styleBorderTop;
+
+    this.coords.x = e.pageX - this.offsetX;
+    this.coords.y = e.pageY - this.offsetY;
+  }
+
+  //Initialize a new Box, add it, and invalidate the canvas
+  addRect(x, y, width, height, fillColor, handles) {
+    const rect = new Box(x, y, width, height, fillColor, handles);
+    this.boxes.push(rect);
+    this.invalidate();
+  }
+
+  invalidate() {
+    this.info.canvasValid = false;
+  }
+
+  //wipes the canvas context
+  clear(context) {
+    context.clearRect(0, 0, this.info.WIDTH, this.info.HEIGHT);
+  }
+
+  mainDraw() {
+    if (this.info.canvasValid == false) {
+      this.clear(this.ctx);
+
+      // draw all boxes
+      var l = this.boxes.length;
+      for (var i = 0; i < l; i++) {
+        this.boxes[i].draw("normal");
+      }
+
+      this.info.canvasValid = true;
+    }
   }
 
   init() {
-    this.addEventListeners();
-    window.requestAnimationFrame(() => this.draw());
-    this.grid.draw();
+    // make mainDraw() fire every INTERVAL milliseconds
+    setInterval(this.mainDraw.bind(this), Config.INTERVAL);
+
+    // Set event handlers
+    this.canvas.onmousedown = this.myDown.bind(this);
+    this.canvas.onmousemove = this.myMove.bind(this);
+
+    // Set canvas width
+    if (window.innerWidth > 1200) {
+      this.canvas.width = window.innerWidth * 0.5;
+    } else {
+      this.canvas.width = window.innerWidth * 0.9;
+    }
+    this.canvas.height = window.innerHeight * 0.5;
+
+    // set up the selection handle boxes
+    for (var i = 0; i < 8; i++) {
+      var rect = new Box();
+      this.selectionHandles.push(rect);
+    }
+
+    this.addRect(10, 10, 40, 45, "rgba(0,205,0,0.7)", this.selectionHandles);
   }
 }
 
-function init() {
-  const canvas = document.querySelector("canvas");
-  return new App(canvas);
+class Box extends App {
+  constructor(
+    x = 0,
+    y = 0,
+    width = 25,
+    height = 25,
+    fillColor = "grey",
+    selectionHandles
+  ) {
+    super();
+    this.x = Number(x);
+    this.y = Number(y);
+    this.width = Number(width);
+    this.height = Number(height);
+    this.fillColor = fillColor;
+    this.selectionHandles = selectionHandles;
+  }
+
+  draw(context) {
+    // Each box is responsible for its own drawing
+    const {
+      info,
+      mySel,
+      x,
+      y,
+      width,
+      height,
+      fillColor,
+      selectionHandles,
+    } = this;
+
+    let ctx;
+
+    if (context === "normal") {
+      ctx = this.ctx;
+      ctx.fillStyle = fillColor;
+    } else if (context === "ghost") {
+      ctx = this.gctx;
+      ctx.fillStyle = "black";
+    }
+
+    // We can skip the drawing of elements that have moved off the screen:
+    if (x > info.WIDTH || y > info.HEIGHT) return;
+    if (x + width < 0 || y + height < 0) return;
+
+    ctx.fillRect(x, y, width, height);
+
+    // draw selection
+    // this is a stroke along the box and also 8 new selection handles
+    if (!mySel) {
+      ctx.strokeStyle = Config.mySelColor;
+      ctx.lineWidth = Config.mySelWidth;
+      ctx.strokeRect(x, y, width, height);
+
+      // draw the boxes
+      const half = Config.mySelBoxSize / 2;
+
+      // top left, middle, right
+      selectionHandles[0].x = x - half;
+      selectionHandles[0].y = y - half;
+
+      selectionHandles[1].x = x + width / 2 - half;
+      selectionHandles[1].y = y - half;
+
+      selectionHandles[2].x = x + width - half;
+      selectionHandles[2].y = y - half;
+
+      //middle left
+      selectionHandles[3].x = x - half;
+      selectionHandles[3].y = y + height / 2 - half;
+
+      //middle right
+      selectionHandles[4].x = x + width - half;
+      selectionHandles[4].y = y + height / 2 - half;
+
+      //bottom left, middle, right
+      selectionHandles[6].x = x + width / 2 - half;
+      selectionHandles[6].y = y + height - half;
+
+      selectionHandles[5].x = x - half;
+      selectionHandles[5].y = y + height - half;
+
+      selectionHandles[7].x = x + width - half;
+      selectionHandles[7].y = y + height - half;
+
+      ctx.fillStyle = Config.mySelBoxColor;
+      for (var i = 0; i < 8; i++) {
+        var cur = selectionHandles[i];
+        ctx.fillRect(cur.x, cur.y, Config.mySelBoxSize, Config.mySelBoxSize);
+      }
+    }
+  }
 }
 
-init();
+// Initialize our app
+document.addEventListener("DOMContentLoaded", () => {
+  const app = new App();
+  app.init();
+});
