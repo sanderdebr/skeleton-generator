@@ -10,18 +10,29 @@ class App {
     this.grid = { x: [], y: [] };
   }
 
+  // Drag
+  doDrag(target) {
+    target.style.left = this.coords.x;
+    target.style.top = this.coords.y;
+  }
+
   // Adds element to the scene
   addElement(e) {
-    // First check if current element is being clicked
     const { target } = e;
-    if (target.id !== "scene") {
-      this.drag = true;
-      return;
-    } else {
+    // If an element is clicked, initiate drag
+    if (target.dataset.id) {
+      elements.scene.addEventListener("mousemove", () => this.doDrag(target));
+      elements.scene.addEventListener("mouseup", () => {
+        elements.scene.removeEventListener("mousemove", () =>
+          this.doDrag(target)
+        );
+      });
+      // If no element is clicked, and not dragging currently, add element
+    } else if (!this.drag) {
       const element = document.createElement("div");
       if (this.tool === "circle") element.style.borderRadius = "50%";
       element.classList.add("element");
-      element.id = this.objects.length;
+      element.dataset.id = this.objects.length;
       element.style.left = this.snapToGrid(e).left;
       element.style.top = this.snapToGrid(e).top;
 
@@ -121,7 +132,6 @@ class App {
   attachListeners() {
     elements.scene.addEventListener("mousemove", this.updateMouse.bind(this));
     elements.scene.addEventListener("mousedown", this.addElement.bind(this));
-    elements.scene.addEventListener("mouseup", this.dragElement.bind(this));
     elements.clear.addEventListener("click", this.clear.bind(this));
     window.addEventListener("resize", () => {
       this.clearGrid();
