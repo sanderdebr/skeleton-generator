@@ -9,10 +9,21 @@
   cursor: crosshair;
 }
 
-.tool:hover,
-.tool.active {
-  border: 3px solid #48bb78;
+#result {
+  display: none;
+}
+
+.tool {
+  border: 3px solid transparent;
   cursor: pointer;
+}
+
+.tool:hover {
+  border: 3px solid #ededed;
+}
+
+.tool.active {
+  border: 3px solid #68d391;
 }
 
 .tool.active:hover {
@@ -20,7 +31,13 @@
 }
 
 .element {
+  z-index: 2;
   position: absolute;
+  resize: both;
+}
+
+.element:hover {
+  cursor: move;
 }
 
 .yLine {
@@ -36,4 +53,76 @@
   height: 1px;
   width: 100%;
   background: #eee;
+}
+
+.resizers {
+  width: 100%;
+  height: 100%;
+  border: 3px solid #68d391;
+  box-sizing: border-box;
+  display: none;
+}
+
+.element:hover .resizers {
+  display: block;
+}
+
+.circle .resizers {
+  border-radius: 50%;
+}
+
+.resizer {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%; /*magic to turn square into circle*/
+  background: white;
+  border: 3px solid #68d391;
+  position: absolute;
+}
+
+.box .resizer.top-left {
+  left: -5px;
+  top: -5px;
+}
+
+.resizer.top-left {
+  display: none;
+  left: 0;
+  top: 0;
+  cursor: nwse-resize;
+}
+
+.box .resizer.top-right {
+  right: -5px;
+  top: -5px;
+}
+
+.resizer.top-right {
+  display: none;
+  right: 0;
+  top: 0;
+  cursor: nesw-resize;
+}
+
+.box .resizer.bottom-left {
+  left: -5px;
+  bottom: -5px;
+}
+
+.resizer.bottom-left {
+  display: none;
+  left: 0;
+  bottom: 0;
+  cursor: nesw-resize;
+}
+
+.box .resizer.bottom-right {
+  right: -5px;
+  bottom: -5px;
+}
+
+.resizer.bottom-right {
+  right: 0px;
+  bottom: 0px;
+  cursor: nwse-resize;
 }

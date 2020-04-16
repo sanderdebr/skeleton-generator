@@ -9,27 +9,39 @@
     />
     <link href="custom.css" rel="stylesheet" />
   </head>
-  <body>
-    <div
-      class="overflow-hidden bg-gray-200 flex flex-col justify-center h-full items-center"
-    >
+  <body class="bg-gray-200 flex justify-center items-center">
+    <main class="flex flex-col justify-center items-center">
       <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
         <p class="text-3xl mb-1">UX Skeleton Screen Generator</p>
         <p class="mt-2 mb-1">
           Draw your website skeleton outline below and this site will the CSS
           and HTML skeleton for you!
         </p>
-        <p class="mb-3">Left click to add an element, right to delete one.</p>
+        <p class="mb-3">
+          <strong>Left click: </strong> add element,
+          <strong>Right click/Scroll: </strong> delete element,
+          <strong>Hold:</strong> drag or resize
+        </p>
+
         <div class="flex justify-between mb-2">
-          <div class="flex items-center">
+          <div class="flex-wrap flex items-center">
             <p class="pr-1">Shapes:</p>
             <div id="box" class="tool active bg-gray-500 p-3 m-2"></div>
             <div
               id="circle"
               class="tool bg-gray-200 p-3 m-2 rounded-full"
             ></div>
-            <p class="px-5">Color:</p>
-            <input id="color" type="color" value="#ededed" />
+            <p class="pl-5 pr-2">Color:</p>
+            <input id="color" type="color" value="" />
+            <p class="pl-5 pr-2">Grid size:</p>
+            <input
+              id="grid-size"
+              class="bg-gray-200 p-1 m-1"
+              type="number"
+              min="1"
+              max="30"
+              value=""
+            />
           </div>
           <div class="flex items-center">
             <button
@@ -45,6 +57,7 @@
         </div>
         <div class="flex items-center justify-between">
           <button
+            id="generate"
             class="submit__btn bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             type="button"
           >
@@ -52,10 +65,13 @@
           </button>
         </div>
       </div>
+      <div id="result" class="bg-white shadow-md rounded p-8">
+        <h2>Result:</h2>
+      </div>
       <p class="text-center text-gray-500 text-xs">
         &copy;2020 Sander de Bruijn
       </p>
-    </div>
+    </main>
     <script type="module" src="app.js"></script>
   </body>
 </html>
