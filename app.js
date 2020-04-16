@@ -42,7 +42,11 @@ class App {
 
     // If something else than the left button has been clicked and it is an element, remove the node
     if (e.button !== 0 && target.dataset.id) {
-      target.parentNode.parentNode.removeChild(target.parentNode);
+      const myTarget = target.parentNode
+      myTarget.parentNode.removeChild(myTarget);
+      const index = this.objects.indexOf(myTarget);
+      this.objects.splice(index, 1);
+      console.log(this.objects)
       e.preventDefault();
       return;
     }
@@ -82,6 +86,7 @@ class App {
       element.classList.add("element");
       element.classList.add(this.tool);
       element.dataset.id = this.objects.length;
+      element.style.zIndex = this.objects.length;
       element.style.left = this.snapToGrid(e).left;
       element.style.top = this.snapToGrid(e).top;
 
