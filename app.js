@@ -1,6 +1,6 @@
 import { elements } from "./data.js";
 import Config from "./config.js";
-import "./html2canvas.js";
+import "./utils/html2canvas.js";
 
 class App {
   constructor() {
