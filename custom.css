@@ -13,6 +13,47 @@
   display: none;
 }
 
+#skeleton {
+  position: absolute;
+  z-index: 999;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#skeleton .skeleton-image {
+  width: 900px;
+  height: 500px;
+  background-image: url("skeleton.png");
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+@media (max-width: 900px) {
+  #skeleton .skeleton-image {
+    width: 100%;
+    height: 100vh;
+    background-image: url("mobile.png");
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+}
+
+#indicator {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 15px;
+  height: 15px;
+  background-color: #68d391;
+  z-index: 100;
+  cursor: nwse-resize;
+}
+
 .tool {
   border: 3px solid transparent;
   cursor: pointer;

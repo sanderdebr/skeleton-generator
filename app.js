@@ -1,6 +1,6 @@
 import { elements } from "./data.js";
 import Config from "./config.js";
-import './html2canvas.js';
+import "./html2canvas.js";
 
 class App {
   constructor() {
@@ -8,10 +8,18 @@ class App {
     this.objects = [];
     this.dragging = false;
     this.resizing = false;
+    this.resizingScene = false;
     this.target = null;
     this.coords = { x: 0, y: 0 };
     this.grid = { x: [], y: [] };
-    this.start = { x: null, y: null, startWidth: null, startHeight: null };
+    this.start = {
+      x: null,
+      y: null,
+      startWidth: null,
+      startHeight: null,
+      sceneWidth: null,
+      sceneHeight: null,
+    };
     this.gridSize = Config.gridSpacing;
   }
 
@@ -19,9 +27,9 @@ class App {
   drag() {
     if (this.dragging) {
       this.target.style.left =
-        this.coords.x - elements.scene.offsetWidth / this.gridSize;
+        this.coords.x - parseInt(this.target.style.width) / 2;
       this.target.style.top =
-        this.coords.y - elements.scene.offsetHeight / this.gridSize;
+        this.coords.y - parseInt(this.target.style.height) / 2;
     }
   }
 
@@ -34,6 +42,10 @@ class App {
       this.resizing = false;
       this.target = null;
     }
+    if (this.resizingScene) {
+      this.resizingScene = false;
+      this.target = null;
+    }
   }
 
   // Adds element to the scene
@@ -42,19 +54,18 @@ class App {
 
     // If something else than the left button has been clicked and it is an element, remove the node
     if (e.button !== 0 && target.dataset.id) {
-      const myTarget = target.parentNode
+      const myTarget = target.parentNode;
       myTarget.parentNode.removeChild(myTarget);
       const index = this.objects.indexOf(myTarget);
       this.objects.splice(index, 1);
-      console.log(this.objects)
+      console.log(this.objects);
       e.preventDefault();
       return;
     }
 
-    // Resize
+    // Resize elements
     if (target.classList.contains("resizer")) {
       this.target = target;
-      this.resizing = true;
       const startWidth = parseInt(
         document.defaultView.getComputedStyle(target.parentNode).width,
         10
@@ -64,12 +75,30 @@ class App {
         10
       );
       this.start = {
+        ...this.start,
         x: this.coords.x,
         y: this.coords.y,
         startWidth,
         startHeight,
       };
+      this.resizing = true;
       elements.scene.addEventListener("mousemove", this.resize.bind(this));
+      return;
+    }
+
+    // Resize scene
+    if (target.id === "indicator") {
+      const sceneWidth = elements.scene.offsetWidth;
+      const sceneHeight = elements.scene.offsetHeight;
+      this.start = {
+        ...this.start,
+        x: this.coords.x,
+        y: this.coords.y,
+        sceneWidth,
+        sceneHeight,
+      };
+      this.resizingScene = true;
+      elements.scene.addEventListener("mousemove", this.resizeScene.bind(this));
       return;
     }
 
@@ -114,7 +143,7 @@ class App {
 
   resize() {
     const { startWidth, startHeight, x, y } = this.start;
-    if (this.target) {
+    if (this.target && this.resize) {
       const target = this.target.parentNode.parentNode;
       const pos = Array.from(this.target.classList)[1];
       switch (pos) {
@@ -125,6 +154,14 @@ class App {
         default:
           return;
       }
+    }
+  }
+
+  resizeScene() {
+    const { sceneWidth, sceneHeight, x, y } = this.start;
+    if (this.resizingScene) {
+      elements.scene.style.width = sceneWidth + this.coords.x - x + "px";
+      elements.scene.style.height = sceneHeight + this.coords.y - y + "px";
     }
   }
 
@@ -201,20 +238,37 @@ class App {
 
   // Renders image based of div
   getSkeleton() {
+    this.clearGrid();
+    elements.scene.classList = "";
+    document.getElementById("indicator").style.display = "none";
+
     html2canvas(document.getElementById("scene")).then((canvas) => {
-      elements.result.appendChild(canvas);
-      if (elements.result.style.display !== 'block') elements.result.style.display = 'block';
+      elements.canvas.appendChild(canvas);
+      if (elements.result.style.display !== "block")
+        elements.result.style.display = "block";
       window.scrollTo({
         bottom: 0,
-        behavior: 'smooth',
+        behavior: "smooth",
       });
     });
+
+    this.addIndicator();
+    this.addGrid(elements.scene);
+    elements.scene.classList = "border-solid border-4 border-gray-600";
+  }
+
+  // Add resize scene indicator
+  addIndicator() {
+    const indicator = document.createElement("div");
+    indicator.id = "indicator";
+    elements.scene.appendChild(indicator);
   }
 
   // Clear scene
   clear() {
     elements.scene.innerHTML = "";
     this.objects = [];
+    this.addIndicator();
     this.addGrid(elements.scene);
   }
 
@@ -238,7 +292,7 @@ class App {
       this.addGrid(elements.scene);
     });
     elements.gridSize.addEventListener("change", this.updateGrid.bind(this));
-    elements.generate.addEventListener("click", this.getSkeleton);
+    elements.generate.addEventListener("click", this.getSkeleton.bind(this));
   }
 
   init() {
@@ -249,11 +303,16 @@ class App {
     // Initialise methods
     this.toolPicker();
     this.attachListeners();
+    this.addIndicator();
     this.addGrid(elements.scene);
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   const app = new App();
+  setTimeout(
+    () => (document.getElementById("skeleton").style.display = "none"),
+    1000
+  );
   app.init();
 });
