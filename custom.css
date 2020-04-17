@@ -11,6 +11,7 @@
 
 #result {
   display: none;
+  min-width: 58vw;
 }
 
 #skeleton {
@@ -166,4 +167,8 @@
   right: 0px;
   bottom: 0px;
   cursor: nwse-resize;
+}
+
+.restart {
+  margin-bottom: -3rem;
 }

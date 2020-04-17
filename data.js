@@ -7,7 +7,8 @@ export const elements = {
   generate: document.getElementById("generate"),
   result: document.getElementById("result"),
   canvas: document.getElementById("canvas"),
-  indicator: document.getElementById("indicator"),
+  codeOutput: document.getElementById("codeOutput"),
+  draw: document.getElementById("draw")
 };
 
 export default elements;

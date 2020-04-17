@@ -118,6 +118,7 @@ class App {
       element.style.zIndex = this.objects.length;
       element.style.left = this.snapToGrid(e).left;
       element.style.top = this.snapToGrid(e).top;
+      element.style.position = 'absolute';
 
       // Fit size based on grid spacing
       element.style.width =
@@ -240,21 +241,70 @@ class App {
   getSkeleton() {
     this.clearGrid();
     elements.scene.classList = "";
-    document.getElementById("indicator").style.display = "none";
+    
+    const indicator = document.getElementById("indicator");
+    indicator.parentNode.removeChild(indicator);
+    const resizers = document.querySelectorAll('.resizers');
+    resizers.forEach(resizer => {
+      resizer.parentNode.removeChild(resizer);
+    });
 
-    html2canvas(document.getElementById("scene")).then((canvas) => {
-      elements.canvas.appendChild(canvas);
-      if (elements.result.style.display !== "block")
+    const width = elements.scene.offsetWidth;
+    const height = elements.scene.offsetHeight;
+    const output = elements.scene.innerHTML;
+
+    const markup = `
+    <html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Skeleton page</title>
+    <style>
+        #skeleton {
+            position: fixed;
+            z-index: 999;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #skeleton .wrapper {
+            width: ${width}px;
+            height: ${height}px;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div id="skeleton">
+        <div class="wrapper">${output}</div>
+    </body>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Remove the setTimeout in production
+            setTimeout(() => document.getElementById("skeleton").style.display = 'none', 3000);
+        });
+    </script>
+</html>
+    `;
+
+    elements.codeOutput.innerHTML = markup;
+
+    if (elements.result.style.display !== "block")
         elements.result.style.display = "block";
       window.scrollTo({
         bottom: 0,
         behavior: "smooth",
       });
+
+    html2canvas(document.getElementById("scene")).then((canvas) => {
+      elements.canvas.appendChild(canvas);
     });
 
-    this.addIndicator();
-    this.addGrid(elements.scene);
-    elements.scene.classList = "border-solid border-4 border-gray-600";
+    elements.draw.style.display = 'none';
   }
 
   // Add resize scene indicator
@@ -312,7 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const app = new App();
   setTimeout(
     () => (document.getElementById("skeleton").style.display = "none"),
-    1000
+    300
   );
   app.init();
 });
